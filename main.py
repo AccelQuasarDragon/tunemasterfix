@@ -1,9 +1,10 @@
+import flask_app
+
 from threading import Thread
 
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, NoTransition
 
-from flask_app import FlaskApp
 from Screens import MainScreen
 
 
@@ -16,7 +17,7 @@ class TuneTransfer(App):
     def build(self) -> ScreenManager:
 
         # // Create flask app
-        Thread(target=FlaskApp().create_flask_app_routes).start()
+        Thread(target=flask_app.run_flask_app).start()
 
         # // Screen manager is used to switch between different screens
         screenmanager = ScreenManager(transition=NoTransition())
