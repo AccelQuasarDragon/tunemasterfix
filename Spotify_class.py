@@ -1,23 +1,21 @@
-import os
-
 import requests.exceptions
-import spotipy
-import jellyfish
 
-from dotenv import load_dotenv
+import jaro
+import spotipy
+
+from data import api_keys, artists
 from flask import session
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
 from spotipy.cache_handler import FlaskSessionCacheHandler
 
 # import setups
-load_dotenv()
 cache_handler = FlaskSessionCacheHandler(session)
 
 
 # Spotify variables
-SPOTIFY_CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
-SPOTIFY_CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
+SPOTIFY_CLIENT_ID = api_keys["SPOTIFY_CLIENT_ID"]
+SPOTIFY_CLIENT_SECRET = api_keys["SPOTIFY_CLIENT_SECRET"]
 scopes = ['playlist-read-collaborative', 'user-read-private', 'playlist-modify-private',
           'playlist-read-private']
 
@@ -75,7 +73,7 @@ class SpotifyFunctions:
         for i in range(5):
             artist = artist_search_result['artists']['items'][i]['name']
 
-            if jellyfish.jaro_similarity(artist, artist_name) > 0.7:
+            if jaro.jaro_metric(artist, artist_name) > 0.7:
                 return True
 
         else:
@@ -150,8 +148,8 @@ class SpotifyFunctions:
                     full_title = full_title.replace(' ' * length, ' ')
                     full_title_2 = full_title_2.replace(' ' * length, ' ')
 
-                similarity = jellyfish.jaro_similarity(song_name.upper(), full_title.upper())
-                similarity_2 = jellyfish.jaro_similarity(song_name.upper(), full_title_2.upper())
+                similarity = jaro.jaro_metric(song_name.upper(), full_title.upper())
+                similarity_2 = jaro.jaro_metric(song_name.upper(), full_title_2.upper())
 
                 if similarity > highest_similarity or similarity_2 > highest_similarity:
 

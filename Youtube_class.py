@@ -1,27 +1,19 @@
-import os
-
-import jellyfish
+import jaro
 import googleapiclient.discovery
 import google_auth_oauthlib
 
+from data import api_keys, artists
 from Spotify_class import SpotifyFunctions
-from artist_data import artists
-
-from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 from google_auth_oauthlib.flow import InstalledAppFlow
 from youtube_search import YoutubeSearch
-
-
-# import setups
-load_dotenv()
 
 # Class setups
 Spotify = SpotifyFunctions()
 
 # Google/Youtube setup
-GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
-GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+GOOGLE_CLIENT_ID = api_keys['GOOGLE_CLIENT_ID']
+GOOGLE_CLIENT_SECRET = api_keys['GOOGLE_CLIENT_SECRET']
 CLIENT_FILE = 'client_secrets.json'
 REDIRECT_URI = 'http://127.0.0.1:5000/ytplaylistselect'
 GOOGLE_SCOPES = ['https://www.googleapis.com/auth/youtube',
@@ -182,7 +174,7 @@ def optimize_song_name(song_name: str, channel_title: str) -> str:
             break
 
         for artist in artists:
-            similarity = jellyfish.jaro_similarity(word.upper(), artist.upper())
+            similarity = jaro.jaro_metric(word.upper(), artist.upper())
 
             if similarity > 0.80:
                 valid_song = True

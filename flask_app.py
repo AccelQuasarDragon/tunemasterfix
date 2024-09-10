@@ -12,7 +12,7 @@ flask_app.config['SERVER_NAME'] = '127.0.0.1:5000'
 flask_app.config['SESSION_COOKIE_NAME'] = 'Cookies'
 flask_app.config['TEMPLATES_AUTO_RELOAD'] = True
 flask_app.config['SEND_FILE_MAX_MAX_AGE_DEFAULT'] = 0
-flask_app.secret_key = os.getenv('APP_SECRET_KEY')
+flask_app.secret_key = 'TuneTransfer123'
 
 # // Class setups
 spotify_client = SpotifyFunctions()
@@ -58,19 +58,23 @@ def redirect_page() -> Response | None:
 
     print('redirect')
 
-    # get access token from page link and get user id if needed
+    # // get access token from page link and get user id if needed
     spotify_client.spotify_oauth.get_access_token(request.args['code'])
     spotify_client.get_user_info()
 
     if user.destination == 'spotify':
+        print("1")
         return redirect(url_for('get_yt_playlist'))
     else:
+        print('2')
         ...
 
 
 @flask_app.route('/get_youtube_playlist', methods=['GET', 'POST'])
 def get_yt_playlist() -> Response | str:
     """Page that gets an id of and song names in a yt playlist and checks its validity"""
+
+    print('get_yt_pl')
 
     # check if user is logged in
     if not spotify_client.check_token():
