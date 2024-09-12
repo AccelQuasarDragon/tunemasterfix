@@ -4,33 +4,16 @@ import jaro
 import spotipy
 
 from data import api_keys, artists
-from flask import session
+from flask import session, app
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
 from spotipy.cache_handler import FlaskSessionCacheHandler
-
-# import setups
-cache_handler = FlaskSessionCacheHandler(session)
-
 
 # Spotify variables
 SPOTIFY_CLIENT_ID = api_keys["SPOTIFY_CLIENT_ID"]
 SPOTIFY_CLIENT_SECRET = api_keys["SPOTIFY_CLIENT_SECRET"]
 scopes = ['playlist-read-collaborative', 'user-read-private', 'playlist-modify-private',
           'playlist-read-private']
-
-# handles spotify oauth
-sp_oauth = SpotifyOAuth(
-    client_id=SPOTIFY_CLIENT_ID,
-    client_secret=SPOTIFY_CLIENT_SECRET,
-    redirect_uri='http://127.0.0.1:5000/redirect',
-    scope=scopes,
-    cache_handler=cache_handler,
-    show_dialog=True
-)
-
-# spotify client
-sp = Spotify(auth_manager=sp_oauth)
 
 # Variables
 terms_to_remove: list = ['(Official Videoclip)', '(Official Video)', '[Official video]', '(Official Live Video)',
@@ -46,15 +29,27 @@ class SpotifyFunctions:
     """Class that contains all functions that use spotify api"""
 
     def __init__(self):
-        self.spotify_oauth: spotipy.SpotifyOAuth = sp_oauth
-        self.sp: spotipy.Spotify = sp
+        self.cache_handler = FlaskSessionCacheHandler(session)
+        self.spotify_oauth: spotipy.SpotifyOAuth = self.oauth_setup()
+        self.sp: spotipy.Spotify = Spotify(auth_manager=self.spotify_oauth)
         self.user_id = None
+
+    def oauth_setup(self):
+
+        # handles spotify oauth
+        return SpotifyOAuth(
+            client_id=SPOTIFY_CLIENT_ID,
+            client_secret=SPOTIFY_CLIENT_SECRET,
+            redirect_uri='http://127.0.0.1:5000/redirect',
+            scope=scopes,
+            show_dialog=True
+        )
 
     def check_token(self) -> bool:
         """Check if user is logged into spotify"""
 
         # check if the user has a valid access token and thus is logged in
-        if not self.spotify_oauth.validate_token(cache_handler.get_cached_token()):
+        if not self.spotify_oauth.validate_token(self.cache_handler.get_cached_token()):
             return False
         else:
             return True

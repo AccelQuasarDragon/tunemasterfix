@@ -1,15 +1,14 @@
 import jaro
+import time
+import flask
 import googleapiclient.discovery
 import google_auth_oauthlib
 
 from data import api_keys, artists
-from Spotify_class import SpotifyFunctions
 from authlib.integrations.flask_client import OAuth
 from google_auth_oauthlib.flow import InstalledAppFlow
 from youtube_search import YoutubeSearch
 
-# Class setups
-Spotify = SpotifyFunctions()
 
 # Google/Youtube setup
 GOOGLE_CLIENT_ID = api_keys['GOOGLE_CLIENT_ID']
@@ -34,31 +33,30 @@ types_of_underscores: list = ['-', '-', '–', '-']
 class Youtube:
     """Class that contains all functions that use Youtube"""
 
-    def __init__(self, app):
-        self.app = app
+    def __init__(self):
         self.oauth = None
         self.flow = None
         self.credentials = None
         self.youtube_build = None
         self.google_build = None
-
-    def create_yt_oauth(self) -> None:
-        """Function that sets up google oauth needed to access a youtube account"""
-
-        self.oauth = OAuth(self.app)
-        self.google_build = self.oauth.register(
-            name='Google',
-            client_id=GOOGLE_CLIENT_ID,
-            client_secret=GOOGLE_CLIENT_SECRET,
-            access_token_url='https://accounts.google.com/o/oauth2/token',
-            access_token_params=None,
-            authorize_url='https://accounts.google.com/o/oauth2/auth',
-            authorize_params={'access_type': 'offline'},
-            api_base_url='https://www.googleapis.com/youtube/v3',
-            client_kwargs={
-                'prompt': 'consent',
-                'scope': 'https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.readonly'
-                         '  https://www.googleapis.com/auth/youtubepartner-channel-audit'})
+    #
+    # def create_yt_oauth(self) -> None:
+    #     """Function that sets up google oauth needed to access a youtube account"""
+    #
+    #     self.oauth = OAuth(flask.current_app)
+    #     self.google_build = self.oauth.register(
+    #         name='Google',
+    #         client_id=GOOGLE_CLIENT_ID,
+    #         client_secret=GOOGLE_CLIENT_SECRET,
+    #         access_token_url='https://accounts.google.com/o/oauth2/token',
+    #         access_token_params=None,
+    #         authorize_url='https://accounts.google.com/o/oauth2/auth',
+    #         authorize_params={'access_type': 'offline'},
+    #         api_base_url='https://www.googleapis.com/youtube/v3',
+    #         client_kwargs={
+    #             'prompt': 'consent',
+    #             'scope': 'https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.readonly'
+    #                      '  https://www.googleapis.com/auth/youtubepartner-channel-audit'})
 
     def create_flow(self) -> None:
         """Function that creates the flow that is used for running the Google server"""
@@ -113,6 +111,7 @@ class Youtube:
 
                 try:
                     song_name_request = self.youtube_build.videos().list(part='snippet', id=yt_video_id)
+                    time.sleep(0.1)
                     song_name_response = song_name_request.execute()
                     song_name = song_name_response['items'][0]['snippet']['title']
                     song_artist = song_name_response['items'][0]['snippet']['channelTitle']
@@ -131,6 +130,22 @@ class Youtube:
                 break
 
         return song_names
+
+    def get_user_playlists(self) -> dict:
+        """Function that collects a dict of the user's playlist for use in the dropdown menu"""
+
+        playlists = {}
+
+        # // Get playlists from youtube api
+        playlists_raw_reponse = self.youtube_build.playlists().list(part="snippet", mine=True).execute()
+
+        # // Extract playlist titles and ids from raw response
+        for playlist in playlists_raw_reponse['items']:
+            playlist_name = playlist["snippet"]["title"]
+            playlist_id = playlist["id"]
+            playlists[playlist_name] = playlist_id
+
+        return playlists
 
     def create_yt_playlist(self, playlist_name, song_names):
         """Function that uses yt api to create a new playlist and inserts desired songs into it"""
@@ -185,7 +200,7 @@ def optimize_song_name(song_name: str, channel_title: str) -> str:
 
     # remove unwanted terms from song name
     for term in terms_to_remove:
-        song_name = song_name.replace(term, '')
+        song_name = str(song_name.replace(term, ''))
         song_name = song_name.replace(term.upper(), '')
 
     for i in range(2, 6):

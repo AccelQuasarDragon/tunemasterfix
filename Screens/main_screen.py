@@ -8,11 +8,11 @@ from kivy.uix.image import Image
 from kivy.uix.screenmanager import Screen
 
 from User_class import user
-
+from .select_youtube_pl_screen import SelectYtPlScreen
 
 # // Images used
-main_background = './Resources/main_screen/MainScreen_background.png'
-text_logo = './Resources/main_screen/TuneTransfer_new_text.png'
+main_background = './static/main_screen/MainScreen_background.png'
+text_logo = './static/main_screen/TuneTransfer_new_text.png'
 
 
 class MainScreen(Screen):
@@ -37,3 +37,9 @@ class MainScreen(Screen):
     def go_to_sp(self, instance):
         user.destination = 'spotify'
         webbrowser.open("http://127.0.0.1:5000/tospotify")
+
+        while not user.logged_in_spotify:
+            pass
+
+        self.manager.add_widget(SelectYtPlScreen(name='select_yt_pl'))
+        self.manager.current = 'select_yt_pl'
