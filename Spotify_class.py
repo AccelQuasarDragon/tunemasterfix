@@ -107,63 +107,64 @@ class SpotifyFunctions:
 
         return song_names
 
-    def create_spotify_playlist(self, playlist_name, song_names) -> None:
-        """Use Spotify client to create a new playlist on the current user's account and transfer
-         the songs of the chosen youtube playlist"""
+    def create_spotify_playlist(self, playlist_name) -> str:
+        """Use Spotify client to create a new playlist on the current user's account and return it's id for
+        future use"""
 
         # create a new playlist and get its id
         new_playlist = self.sp.user_playlist_create(user=self.user_id, name=playlist_name,
                                                     public=False, collaborative=False)
-        playlist_id = new_playlist['id']
+        return new_playlist['id']
 
-        # Transfer every song
-        for song_name in song_names:
+    def add_song_to_playlist(self, playlist_id: str, song_name: str) -> None:
+        """Add a song to a previously created playlist"""
 
-            spotify_song = self.sp.search(q=song_name, limit=5, type=['track'])
-            highest_similarity = 0
-            song_uri = None
+        spotify_song = self.sp.search(q=song_name, limit=5, type=['track'])
+        print('found song')
+        highest_similarity = 0
+        song_uri = None
 
-            # Search for song with the highest similarity
-            for i in range(5):
-                song_artist = spotify_song['tracks']['items'][i]['artists'][0]['name']
-                song_title = spotify_song['tracks']['items'][i]['name']
+        # Search for song with the highest similarity
+        for i in range(5):
+            song_artist = spotify_song['tracks']['items'][i]['artists'][0]['name']
+            song_title = spotify_song['tracks']['items'][i]['name']
 
-                full_title = f'{song_artist} - {song_title}'
-                full_title_2 = f'{song_title} - {song_artist}'
+            full_title = f'{song_artist} - {song_title}'
+            full_title_2 = f'{song_title} - {song_artist}'
 
-                # remove unwanted terms from song name
-                for term in terms_to_remove:
-                    full_title = full_title.replace(term, '')
-                    full_title = full_title.replace(term.upper(), '')
+            # remove unwanted terms from song name
+            for term in terms_to_remove:
+                full_title = full_title.replace(term, '')
+                full_title = full_title.replace(term.upper(), '')
 
-                    full_title_2 = full_title_2.replace(term, '')
-                    full_title_2 = full_title_2.replace(term.upper(), '')
+                full_title_2 = full_title_2.replace(term, '')
+                full_title_2 = full_title_2.replace(term.upper(), '')
 
-                for length in range(2, 6):
-                    full_title = full_title.replace(' ' * length, ' ')
-                    full_title_2 = full_title_2.replace(' ' * length, ' ')
+            for length in range(2, 6):
+                full_title = full_title.replace(' ' * length, ' ')
+                full_title_2 = full_title_2.replace(' ' * length, ' ')
 
-                similarity = jaro.jaro_metric(song_name.upper(), full_title.upper())
-                similarity_2 = jaro.jaro_metric(song_name.upper(), full_title_2.upper())
+            similarity = jaro.jaro_metric(song_name.upper(), full_title.upper())
+            similarity_2 = jaro.jaro_metric(song_name.upper(), full_title_2.upper())
 
-                if similarity > highest_similarity or similarity_2 > highest_similarity:
+            if similarity > highest_similarity or similarity_2 > highest_similarity:
 
-                    # Skip unwanted remixes
-                    if 'remix' in song_title and 'remix' not in song_name:
-                        pass
-                    elif 'Remix' in song_title and 'Remix' not in song_name:
-                        pass
-                    elif 'REMIX' in song_title and 'REMIX' not in song_name:
-                        pass
+                # Skip unwanted remixes
+                if 'remix' in song_title and 'remix' not in song_name:
+                    pass
+                elif 'Remix' in song_title and 'Remix' not in song_name:
+                    pass
+                elif 'REMIX' in song_title and 'REMIX' not in song_name:
+                    pass
+                else:
+                    if similarity > highest_similarity:
+                        highest_similarity = similarity
+
                     else:
-                        if similarity > highest_similarity:
-                            highest_similarity = similarity
+                        highest_similarity = similarity_2
+                    song_uri = spotify_song['tracks']['items'][i]['uri']
 
-                        else:
-                            highest_similarity = similarity_2
-                        song_uri = spotify_song['tracks']['items'][i]['uri']
-
-            self.sp.playlist_add_items(playlist_id=playlist_id, items=[song_uri])
+        self.sp.playlist_add_items(playlist_id=playlist_id, items=[song_uri])
 
 
 def estimate_time(song_count: int) -> None:

@@ -1,5 +1,5 @@
+from kivy.clock import Clock
 from kivy.uix.button import Button
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.dropdown import DropDown
 from kivy.uix.image import Image
 from kivy.uix.label import Label
@@ -9,10 +9,13 @@ from kivy.core.window import Window
 
 from User_class import user
 from Youtube_class import Youtube
-from flask_app import spotify_client
+from .processing_screen import ProcessingScreen
 
 # // Images used
 main_background = './static/main_screen/MainScreen_background.png'
+select_playlist_button_image = './static/select_pl_screens/button_select-playlist.png'
+empty_button_image = './static/select_pl_screens/button.png'
+submit_button_image = './static/select_pl_screens/button_submit.png'
 
 
 class SelectYtPlScreen(Screen):
@@ -20,6 +23,7 @@ class SelectYtPlScreen(Screen):
         super(SelectYtPlScreen, self).__init__(**kw)
         self.yt_client = Youtube()
 
+        self.chosen_playlist = None
         self.name_input = None
 
         # // Page theming
@@ -42,24 +46,34 @@ class SelectYtPlScreen(Screen):
         # // Creating dropwon menu to pick a playlist
         dropdown = DropDown()
         for playlist in self.playlists.keys():
-            btn = Button(text=playlist, size_hint_y=None, height=100, width=Window.size[0] // 3)
+            btn = Button(text=playlist, size_hint_y=None, height=100, width=Window.size[0] // 3,
+                         background_normal=empty_button_image, background_down=empty_button_image)
             btn.bind(on_release=lambda instance: dropdown.select(instance.text))
             dropdown.add_widget(btn)
 
         # // Main button that opens dropwown
-        self.open_dropdown_button = Button(text="select playlist", size_hint=(.3, .125),
-                                           pos_hint={'x': .35, 'y': .45})
+        self.open_dropdown_button = Button(size_hint=(.3, .125), pos_hint={'x': .35, 'y': .45},
+                                           background_normal=select_playlist_button_image,
+                                           background_down=select_playlist_button_image)
         self.open_dropdown_button.bind(on_release=dropdown.open)
 
-        dropdown.bind(on_select=lambda instance, x: setattr(self.open_dropdown_button, 'text', x))
+        dropdown.bind(on_select=lambda instance, x: setattr(self, 'chosen_playlist', x))
         self.add_widget(self.open_dropdown_button)
 
         # // Button to submit playlist info
-        submit_button = Button(text="submit", size_hint=(.2, .1), pos_hint={'x': .4, 'y': .2})
+        submit_button = Button(size_hint=(.2, .1), pos_hint={'x': .4, 'y': .2},
+                               background_normal=submit_button_image, background_down=submit_button_image)
         submit_button.bind(on_press=self.submit_info)
         self.add_widget(submit_button)
 
     def submit_info(self, instance):
-        if self.name_input and self.open_dropdown_button.text != "select playlist":
-            songs = self.yt_client.get_playlist_items(self.playlists[self.open_dropdown_button.text])
-            spotify_client.create_spotify_playlist(self.name_input, songs)
+        if self.name_input and self.chosen_playlist:
+
+            # // Switch to processing screen
+            processing_screen = ProcessingScreen(youtube_client=self.yt_client,
+                                                 playlist_name=self.name_input,
+                                                 playlist_id_origin=self.playlists[self.chosen_playlist],
+                                                 destination=user.destination, name="processing")
+            self.manager.add_widget(processing_screen)
+            self.manager.current = "processing"
+            Clock.schedule_once(processing_screen.create_playlist, .2)
