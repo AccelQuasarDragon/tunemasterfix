@@ -1,10 +1,11 @@
+import os
+
 import flask_app
+import shutil
 
 from threading import Thread
-
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, NoTransition
-
 from Screens import MainScreen
 
 
@@ -31,6 +32,14 @@ class TuneTransfer(App):
 
 
 if __name__ == "__main__":
+
+    # // clear thumbnails folder
+    try:
+        shutil.rmtree('./static/select_pl_screens/thumbnails')
+    except FileNotFoundError:
+        pass
+
+    os.mkdir('./static/select_pl_screens/thumbnails')
     TuneTransfer().run()
 
 

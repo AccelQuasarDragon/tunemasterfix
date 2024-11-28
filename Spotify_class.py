@@ -91,7 +91,6 @@ class SpotifyFunctions:
         playlist_items = self.sp.playlist_items(playlist_id)
 
         total_songs = len(playlist_items['items'])
-        estimate_time(total_songs)
 
         while True:
             for index in range(total_songs):
@@ -150,11 +149,7 @@ class SpotifyFunctions:
             if similarity > highest_similarity or similarity_2 > highest_similarity:
 
                 # Skip unwanted remixes
-                if 'remix' in song_title and 'remix' not in song_name:
-                    pass
-                elif 'Remix' in song_title and 'Remix' not in song_name:
-                    pass
-                elif 'REMIX' in song_title and 'REMIX' not in song_name:
+                if 'REMIX' in song_title.upper() and 'REMIX' not in song_name.upper():
                     pass
                 else:
                     if similarity > highest_similarity:
@@ -165,17 +160,3 @@ class SpotifyFunctions:
                     song_uri = spotify_song['tracks']['items'][i]['uri']
 
         self.sp.playlist_add_items(playlist_id=playlist_id, items=[song_uri])
-
-
-def estimate_time(song_count: int) -> None:
-    """Function that gets the estimated time for transfering to Youtube"""
-
-    tps = 1.6
-
-    seconds: float = tps * song_count
-
-    hours = int(seconds // 3600)
-    minutes = int((seconds - (hours * 3600)) / 60)
-    seconds: float = seconds - (hours * 3600) - (minutes * 60)
-
-    print(f'Estimated time: {hours} hours, {minutes} minutes and {round(seconds, 1)} seconds.')

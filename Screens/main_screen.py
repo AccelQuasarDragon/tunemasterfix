@@ -21,11 +21,11 @@ class MainScreen(Screen):
         self.add_widget(Image(source=main_background, fit_mode='fill'))
         self.add_widget(Image(source=text_logo, pos_hint={'x': 0, 'y': .3}))
 
-        to_sp_button = Button(size_hint=(.2, .1), pos_hint={'x': .4, 'y': .6},
+        to_sp_button = Button(size_hint=(.4, .075), pos_hint={'x': .3, 'y': .6},
                               background_normal=to_sp_button_image, background_down=to_sp_button_image)
         to_sp_button.bind(on_press=self.go_to_sp)
 
-        to_yt_button = Button(size_hint=(.2, .1), pos_hint={'x': .4, 'y': .45},
+        to_yt_button = Button(size_hint=(.4, .075), pos_hint={'x': .3, 'y': .45},
                               background_normal=to_yt_button_image, background_down=to_yt_button_image)
         to_yt_button.bind(on_press=self.go_to_yt)
 

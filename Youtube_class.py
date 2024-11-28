@@ -1,8 +1,8 @@
-import jaro
-import time
-import flask
 import googleapiclient.discovery
 import google_auth_oauthlib
+import jaro
+import time
+import urllib.request
 
 from data import api_keys, artists
 from authlib.integrations.flask_client import OAuth
@@ -83,7 +83,6 @@ class Youtube:
         """Function that uses yt api to get song names from a playlist"""
 
         next_page_token: str | None = None
-        first_call = True
         song_names: list = []
 
         while True:
@@ -97,10 +96,6 @@ class Youtube:
                 playlist_request = self.youtube_build.playlistItems().list(part='snippet',
                                                                            playlistId=playlist_id,
                                                                            maxResults=50)
-
-                if first_call:
-                    pl_length = playlist_request.execute()['pageInfo']['totalResults']
-                    estimate_time(pl_length)
 
             playlist_response = playlist_request.execute()
             items_on_page: int = len(playlist_response['items'])
@@ -144,6 +139,8 @@ class Youtube:
             playlist_name = playlist["snippet"]["title"]
             playlist_id = playlist["id"]
             playlists[playlist_name] = playlist_id
+
+            download_playlist_thumbnail(playlist)
 
         return playlists
 
@@ -209,15 +206,21 @@ def optimize_song_name(song_name: str, channel_title: str) -> str:
     return song_name
 
 
-def estimate_time(song_count: int) -> None:
-    """Function that gets the estimated time for transfering to Spotify"""
+def download_playlist_thumbnail(playlist) -> None:
+    """Downloads the images of the user's playlists to aid the playlist choice"""
 
-    tps = 0.55
+    playlist_name = playlist["snippet"]["title"]
 
-    seconds: float = tps * song_count
+    # // Download the best possible thumbnail image
+    for res in ['maxres', 'standard']:
+        try:
+            thumbnail_url = playlist["snippet"]["thumbnails"][res]['url']
+            urllib.request.urlretrieve(thumbnail_url,
+                                       f"./static/select_pl_screens/thumbnails/{playlist_name.replace(' ', '_')}.png")
+            return
 
-    hours = int(seconds // 3600)
-    minutes = int((seconds - (hours * 3600)) / 60)
-    seconds: float = seconds - (hours * 3600) - (minutes * 60)
+        except KeyError:
+            continue
 
-    print(f'Estimated time: {hours} hours, {minutes} minutes and {round(seconds, 1)} seconds.')
+    # set not available image
+
