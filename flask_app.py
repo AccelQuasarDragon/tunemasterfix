@@ -18,18 +18,26 @@ def run_flask_app():
     return flask_app.run(host='127.0.0.1', port=5000)
 
 
-def switch_routes(route_name):
-    return redirect(url_for(f'{route_name}'))
-
-
 @flask_app.route("/")
-def hello():
+def main():
     return render_template('main.html')
 
 
 @flask_app.route('/tospotify')
 def to_spotify() -> Response:
     """Redirection page entered by hitting the yt -> spotify button"""
+
+    # check if user is logged in, if yes get their id and otherwise redirect them to login
+    if spotify_client.check_token():
+        spotify_client.get_user_info()
+        return redirect(url_for('finished_process'))
+    else:
+        return redirect(url_for('spotify_login'))
+
+
+@flask_app.route('/toyoutube')
+def to_youtube() -> Response:
+    """Redirection page entered by hitting the spotify -> youtube button"""
 
     # check if user is logged in, if yes get their id and otherwise redirect them to login
     if spotify_client.check_token():
@@ -57,10 +65,10 @@ def redirect_page():
     spotify_client.spotify_oauth.get_access_token(request.args['code'])
     spotify_client.get_user_info()
 
-    if user.destination == 'spotify':
+    if user.destination:
         return redirect(url_for('finished_process'))
     else:
-        ...
+        return redirect(url_for('main'))
 
 
 @flask_app.route('/finished_authentication')

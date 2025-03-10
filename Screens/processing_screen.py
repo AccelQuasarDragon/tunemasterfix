@@ -38,6 +38,7 @@ class ProcessingScreen(Screen):
 
     def create_playlist(self, dt: int | float) -> None:
         """Main function in control of creating and filling a new playlist"""
+
         if self.destination == 'spotify':
             self.songs = self.yt_client.get_playlist_items(self.playlist_id_origin)
             self.song_count = len(self.songs)

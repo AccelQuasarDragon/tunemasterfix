@@ -1,13 +1,12 @@
-import requests.exceptions
-
 import jaro
 import spotipy
 
-from data import api_keys, artists
-from flask import session, app
+from data import api_keys
+from flask import session
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
 from spotipy.cache_handler import FlaskSessionCacheHandler
+
 
 # Spotify variables
 SPOTIFY_CLIENT_ID = api_keys["SPOTIFY_CLIENT_ID"]
@@ -16,12 +15,7 @@ scopes = ['playlist-read-collaborative', 'user-read-private', 'playlist-modify-p
           'playlist-read-private']
 
 # Variables
-terms_to_remove: list = ['(Official Videoclip)', '(Official Video)', '[Official video]', '(Official Live Video)',
-                         '(Official Music Video)', '[Official Music Video]', '(Lyric Video)', '(Lyric)', 'VEVO',
-                         '[Official Video]', '(Official HD Music Video)', '(Official HD Video)', '(Official)',
-                         '(Official Lyric Video)', '- Topic', '[4K Upgrade]', '- Radio Edit']
-
-
+features_to_remove = ["[feat", "(feat", "feat", "[ft", "(ft", "ft", "[with", "(with", "with"]
 types_of_underscores: list = ['-', '-', '–', '-']
 
 
@@ -59,29 +53,24 @@ class SpotifyFunctions:
 
         self.user_id = self.sp.current_user()['id']
 
-    def validate_artist(self, artist_name: str) -> bool:
-        """Search for an artist to see if the string passed to this function is an artist"""
+    def get_user_playlists(self) -> dict:
+        """Use Spotify client to aqcuire a list of the user's Spotify playlists"""
 
-        artist_search_result = self.sp.search(q=artist_name, type='artist', limit=5)
+        playlists = {}
 
-        # try 5 times to see if an artist is valid
-        for i in range(5):
-            artist = artist_search_result['artists']['items'][i]['name']
+        playlist_result = self.sp.current_user_playlists()
 
-            if jaro.jaro_metric(artist, artist_name) > 0.7:
-                return True
+        # // Extract playlist titles and ids
+        for playlist in playlist_result['items']:
+            print(playlist)
+            playlist_name = playlist['name']
+            playlist_id = playlist['id']
+            playlists[playlist_name] = playlist_id
 
-        else:
-            return False
+            download_playlist_thumbnail()
 
-    def validate_playlist(self, playlist_id) -> bool:
-        """Check if the id submitted is the id of a valid playlist"""
-
-        try:
-            _ = self.sp.playlist(playlist_id)
-            return True
-        except requests.exceptions.HTTPError:
-            return False
+        print(playlists)
+        return playlists
 
     def get_playlist_items(self, playlist_id) -> list[str]:
         """Function that gets song names from a Spotify playlist"""
@@ -107,10 +96,9 @@ class SpotifyFunctions:
         return song_names
 
     def create_spotify_playlist(self, playlist_name) -> str:
-        """Use Spotify client to create a new playlist on the current user's account and return it's id for
+        """Use Spotify client to create a new playlist on the current user's account and return its id for
         future use"""
 
-        # create a new playlist and get its id
         new_playlist = self.sp.user_playlist_create(user=self.user_id, name=playlist_name,
                                                     public=False, collaborative=False)
         return new_playlist['id']
@@ -118,45 +106,116 @@ class SpotifyFunctions:
     def add_song_to_playlist(self, playlist_id: str, song_name: str) -> None:
         """Add a song to a previously created playlist"""
 
-        spotify_song = self.sp.search(q=song_name, limit=5, type=['track'])
-        print('found song')
+        results = []
         highest_similarity = 0
-        song_uri = None
+        current_uri = None
 
-        # Search for song with the highest similarity
+        # // Split the search into two parts, one with features and 1 without
+        song_name_no_features = remove_features(song_name.upper())
+
+        spotify_result_with_features = self.sp.search(q=song_name.lower(), limit=5, type=['track'])
+        spotify_result_no_features = self.sp.search(q=song_name_no_features, limit=5, type=["track"])
+
+        # // Gather results from both searches
         for i in range(5):
-            song_artist = spotify_song['tracks']['items'][i]['artists'][0]['name']
-            song_title = spotify_song['tracks']['items'][i]['name']
+            # // Group 1: Featuring the song name with featured artists, both normal and reversed,
+            # for youtube videos that have a reversed title format
+            # step 1: gather artist and title data from the spotify search
+            song_artist_with_features = spotify_result_with_features['tracks']['items'][i]['artists'][0]['name']
+            song_title_with_features = spotify_result_with_features['tracks']['items'][i]['name']
+            song_uri_with_features = spotify_result_with_features['tracks']['items'][i]['uri']
 
-            full_title = f'{song_artist} - {song_title}'
-            full_title_2 = f'{song_title} - {song_artist}'
+            # step 2: assamble the full name of the song, now including the main artist, send this to the results
+            title_with_features_normal = f'{song_artist_with_features} - {song_title_with_features}'
+            title_with_features_reversed = f'{song_title_with_features} - {song_artist_with_features}'
 
-            # remove unwanted terms from song name
-            for term in terms_to_remove:
-                full_title = full_title.replace(term, '')
-                full_title = full_title.replace(term.upper(), '')
+            results.append((title_with_features_normal, title_with_features_reversed, song_uri_with_features))
 
-                full_title_2 = full_title_2.replace(term, '')
-                full_title_2 = full_title_2.replace(term.upper(), '')
+            # // Group 2: Featuring the song name without featured artists, both normal and reversed,
+            # for youtube videos that have a reversed title format
+            # step 1: gather artist and title data from the spotify search
+            song_artist_no_features = spotify_result_no_features['tracks']['items'][i]['artists'][0]['name']
+            song_title_no_features = spotify_result_no_features['tracks']['items'][i]['name']
+            song_uri_no_features = spotify_result_no_features['tracks']['items'][i]['uri']
 
-            for length in range(2, 6):
-                full_title = full_title.replace(' ' * length, ' ')
-                full_title_2 = full_title_2.replace(' ' * length, ' ')
+            # step 2: assamble the full name of the song, now including the main artist, send this to the results
+            title_no_features_normal = f'{song_artist_no_features} - {song_title_no_features}'
+            title_no_features_reversed = f'{song_title_no_features} - {song_artist_no_features}'
 
-            similarity = jaro.jaro_metric(song_name.upper(), full_title.upper())
-            similarity_2 = jaro.jaro_metric(song_name.upper(), full_title_2.upper())
+            results.append((title_no_features_normal, title_no_features_reversed, song_uri_no_features))
 
-            if similarity > highest_similarity or similarity_2 > highest_similarity:
+        # // Go through every result and compare with both the feature and no feature song title
+        for result in results:
+            song_title_normal, song_title_reversed, song_uri = result
 
-                # Skip unwanted remixes
-                if 'REMIX' in song_title.upper() and 'REMIX' not in song_name.upper():
+            # // Group 1: song titles with the features, both normal and reversed
+            similarity_with_features_normal_title = jaro.jaro_metric(song_title_normal.upper(), song_name.upper())
+            similarity_with_features_reversed_title = jaro.jaro_metric(song_title_reversed.upper(), song_name.upper())
+
+            # // Group 2: song titles without the features, both normal and reversed
+            similarity_no_features_normal_title = jaro.jaro_metric(song_title_normal.upper(), song_name_no_features.upper())
+            similarity_no_features_reversed_title = jaro.jaro_metric(song_title_reversed.upper(), song_name_no_features.upper())
+
+            # // Check if any of the calculated similarities are a new highest score, along the way,
+            # filter out any unwanted versions
+            best_match_score = max(similarity_with_features_normal_title, similarity_with_features_reversed_title,
+                                   similarity_no_features_normal_title, similarity_no_features_reversed_title)
+
+            if best_match_score > highest_similarity:
+                if "REMIX" in song_title_normal.upper() and "REMIX" not in song_name.upper():
+                    pass
+                elif "PARTY" in song_title_normal.upper() and "PARTY" not in song_name.upper():
+                    pass
+                elif "KARAOKE" in song_title_normal.upper() and "KARAOKE" not in song_name.upper():
                     pass
                 else:
-                    if similarity > highest_similarity:
-                        highest_similarity = similarity
+                    highest_similarity = best_match_score
+                    current_uri = song_uri
 
-                    else:
-                        highest_similarity = similarity_2
-                    song_uri = spotify_song['tracks']['items'][i]['uri']
+        # // Finally, add the final choice to the playlist
+        self.sp.playlist_add_items(playlist_id=playlist_id, items=[current_uri])
 
-        self.sp.playlist_add_items(playlist_id=playlist_id, items=[song_uri])
+
+def remove_features(song_title: str) -> str:
+    """Function that removes features from a song title,
+     spotify often doesn't mention features in the title even though this is a thing on youtube"""
+
+    # // Split the song title in two parts, one artist, one song name
+    name_part_1 = None
+    name_part_2 = None
+
+    for underscore in types_of_underscores:
+        try:
+            name_part_1, name_part_2 = song_title.split(underscore)
+            break
+        except ValueError:
+            pass
+
+    # / If the video title contains an underscore
+    if name_part_1 and name_part_2:
+
+        # // Remove features from the song title for better results from the spotify api
+        for tag in features_to_remove:
+            try:
+                name_part_1, _ = name_part_1.split(tag.upper())
+            except ValueError:
+                pass
+
+            try:
+                name_part_2, _ = name_part_2.split(tag.upper())
+            except ValueError:
+                pass
+
+        # // Put song parts back together and remove unwanted spaces
+        song_title = f"{name_part_1} - {name_part_2}"
+
+        for i in range(2, 6):
+            song_title = song_title.replace(' ' * i, ' ')
+    else:
+        pass
+
+    return song_title.lower()
+
+
+def download_playlist_thumbnail():
+    ...

@@ -1,14 +1,11 @@
 import googleapiclient.discovery
+import re
 import google_auth_oauthlib
-import jaro
-import time
-import urllib.request
+import requests
 
-from data import api_keys, artists
-from authlib.integrations.flask_client import OAuth
+from data import api_keys
 from google_auth_oauthlib.flow import InstalledAppFlow
 from youtube_search import YoutubeSearch
-
 
 # Google/Youtube setup
 GOOGLE_CLIENT_ID = api_keys['GOOGLE_CLIENT_ID']
@@ -21,17 +18,12 @@ GOOGLE_SCOPES = ['https://www.googleapis.com/auth/youtube',
 YT_DEV_KEY = None
 
 # Variables
-terms_to_remove: list = ['(Official Videoclip)', '(Official Video)', '[Official video]', '(Official Live Video)',
-                         '(Official Music Video)', '[Official Music Video]', '(Lyric Video)', '(Lyric)', 'VEVO',
-                         '[Official Video]', '(Official HD Music Video)', '(Official HD Video)', '(Official)',
-                         '(Official Lyric Video)', '- Topic', '[4K Upgrade]', '- Radio Edit']
-
-
-types_of_underscores: list = ['-', '-', '–', '-']
+loose_terms_to_remove = ['VEVO', '- Topic', '4K Upgrade', '- Radio Edit', "HD",
+                         "Explicit", ' - lyrics video', ' - lyric video', "audio"]
 
 
 class Youtube:
-    """Class that contains all functions that use Youtube"""
+    """Class that contains all functions using the Youtube API"""
 
     def __init__(self):
         self.oauth = None
@@ -39,6 +31,7 @@ class Youtube:
         self.credentials = None
         self.youtube_build = None
         self.google_build = None
+
     #
     # def create_yt_oauth(self) -> None:
     #     """Function that sets up google oauth needed to access a youtube account"""
@@ -67,18 +60,6 @@ class Youtube:
         self.youtube_build = googleapiclient.discovery.build('youtube', 'v3',
                                                              credentials=self.credentials)
 
-    def validate_playlist(self, playlist_id: str) -> bool:
-        """Function that checks if a playlist is valid or not"""
-
-        request = self.youtube_build.playlists().list(part="snippet", id=playlist_id)
-        response = request.execute()
-
-        # Response is empty if a playlist is invalid
-        if not response:
-            return False
-        else:
-            return True
-
     def get_playlist_items(self, playlist_id) -> list:
         """Function that uses yt api to get song names from a playlist"""
 
@@ -86,7 +67,8 @@ class Youtube:
         song_names: list = []
 
         while True:
-            # Check if there is a next page
+
+            # // Check if a next page with more songs exist
             if next_page_token:
                 playlist_request = self.youtube_build.playlistItems().list(part='snippet',
                                                                            playlistId=playlist_id,
@@ -98,7 +80,7 @@ class Youtube:
                                                                            maxResults=50)
 
             playlist_response = playlist_request.execute()
-            items_on_page: int = len(playlist_response['items'])
+            items_on_page = len(playlist_response['items'])
 
             # Go through every song and get its name and artist
             for index in range(items_on_page):
@@ -106,13 +88,12 @@ class Youtube:
 
                 try:
                     song_name_request = self.youtube_build.videos().list(part='snippet', id=yt_video_id)
-                    time.sleep(0.1)
+                    # time.sleep(0.1)
                     song_name_response = song_name_request.execute()
                     song_name = song_name_response['items'][0]['snippet']['title']
                     song_artist = song_name_response['items'][0]['snippet']['channelTitle']
 
                     song_name = optimize_song_name(song_name, song_artist)
-
                     song_names.append(song_name)
 
                 except IndexError:
@@ -178,30 +159,23 @@ def get_song_id(song_name: str) -> str:
 def optimize_song_name(song_name: str, channel_title: str) -> str:
     """Optimize a song name to include both title and artist to get optimal results from spotify api"""
 
-    valid_song = False
+    song_name = song_name.upper()
 
-    # Optimize channel title
-    for word in song_name.split(' '):
-        if valid_song:
-            break
+    # // Remove unwanted brackets
+    matches_with_brackets = re.findall("[[({].*?[])}]", song_name)
+    for match in matches_with_brackets:
+        if not any(x.upper() in match.upper() for x in ['feat', 'ft', 'remix', 'edit']):
+            song_name = song_name.replace(match.upper(), '')
 
-        for artist in artists:
-            similarity = jaro.jaro_metric(word.upper(), artist.upper())
+    # // remove loose unwanted terms from song name, do this twice to avoid nested terms
+    for i in range(2):
+        for term in loose_terms_to_remove:
+            song_name = song_name.replace(f' {term.upper()}', '')
+            song_name = song_name.replace(f'{term.upper()} ', '')
+            song_name = song_name.replace(term.upper(), '')
 
-            if similarity > 0.80:
-                valid_song = True
-                break
-
-    else:
-        song_name = f'{channel_title} - {song_name}'
-
-    # remove unwanted terms from song name
-    for term in terms_to_remove:
-        song_name = str(song_name.replace(term, ''))
-        song_name = song_name.replace(term.upper(), '')
-
-    for i in range(2, 6):
-        song_name = song_name.replace(' ' * i, ' ')
+        for x in range(2, 6):
+            song_name = song_name.replace(' ' * x, ' ')
 
     return song_name
 
@@ -215,12 +189,15 @@ def download_playlist_thumbnail(playlist) -> None:
     for res in ['maxres', 'standard']:
         try:
             thumbnail_url = playlist["snippet"]["thumbnails"][res]['url']
-            urllib.request.urlretrieve(thumbnail_url,
-                                       f"./static/select_pl_screens/thumbnails/{playlist_name.replace(' ', '_')}.png")
-            return
+            r = requests.get(thumbnail_url, stream=True, verify=False)
+
+            with open(f"./static/select_pl_screens/thumbnails/{playlist_name.replace(' ', '_')}.png", 'wb') as f:
+                f.write(r.content)
+                return
 
         except KeyError:
             continue
 
-    # set not available image
-
+    # // set not available image
+    else:
+        ...
