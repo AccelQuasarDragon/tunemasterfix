@@ -1,4 +1,4 @@
-from flask import Flask, redirect, render_template, Response, request, url_for, session
+from flask import Flask, redirect, render_template, Response, request, url_for
 
 from User_class import user
 from Spotify_class import SpotifyFunctions
@@ -12,7 +12,7 @@ flask_app.secret_key = 'TuneTransfer123'
 
 # // Class setups
 spotify_client = SpotifyFunctions()
-
+youtube_client = Youtube()
 
 def run_flask_app():
     return flask_app.run(host='127.0.0.1', port=5000)

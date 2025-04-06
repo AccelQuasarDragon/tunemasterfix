@@ -35,11 +35,13 @@ if __name__ == "__main__":
 
     # // clear thumbnails folder
     try:
-        shutil.rmtree('./static/select_pl_screens/thumbnails')
+        shutil.rmtree('./static/select_pl_screens/thumbnails/sp')
+        shutil.rmtree('./static/select_pl_screens/thumbnails/yt')
     except FileNotFoundError:
         pass
 
-    os.mkdir('./static/select_pl_screens/thumbnails')
+    os.mkdir('./static/select_pl_screens/thumbnails/sp')
+    os.mkdir('./static/select_pl_screens/thumbnails/yt')
     TuneTransfer().run()
 
 

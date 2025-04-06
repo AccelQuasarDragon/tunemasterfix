@@ -1,4 +1,7 @@
+import pprint
+
 import jaro
+import requests
 import spotipy
 
 from data import api_keys
@@ -6,7 +9,6 @@ from flask import session
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
 from spotipy.cache_handler import FlaskSessionCacheHandler
-
 
 # Spotify variables
 SPOTIFY_CLIENT_ID = api_keys["SPOTIFY_CLIENT_ID"]
@@ -62,14 +64,12 @@ class SpotifyFunctions:
 
         # // Extract playlist titles and ids
         for playlist in playlist_result['items']:
-            print(playlist)
             playlist_name = playlist['name']
             playlist_id = playlist['id']
             playlists[playlist_name] = playlist_id
 
-            download_playlist_thumbnail()
+            download_playlist_thumbnail(playlist)
 
-        print(playlists)
         return playlists
 
     def get_playlist_items(self, playlist_id) -> list[str]:
@@ -85,7 +85,7 @@ class SpotifyFunctions:
             for index in range(total_songs):
                 artist = playlist_items['items'][index]['track']['artists'][0]['name']
                 raw_song_name = playlist_items['items'][index]['track']['name']
-                full_song_name = f'{artist} - {raw_song_name} - official audio'
+                full_song_name = f'{artist} - {raw_song_name} - official music video'
                 song_names.append(full_song_name)
 
             if playlist_items['next']:
@@ -153,8 +153,10 @@ class SpotifyFunctions:
             similarity_with_features_reversed_title = jaro.jaro_metric(song_title_reversed.upper(), song_name.upper())
 
             # // Group 2: song titles without the features, both normal and reversed
-            similarity_no_features_normal_title = jaro.jaro_metric(song_title_normal.upper(), song_name_no_features.upper())
-            similarity_no_features_reversed_title = jaro.jaro_metric(song_title_reversed.upper(), song_name_no_features.upper())
+            similarity_no_features_normal_title = jaro.jaro_metric(song_title_normal.upper(),
+                                                                   song_name_no_features.upper())
+            similarity_no_features_reversed_title = jaro.jaro_metric(song_title_reversed.upper(),
+                                                                     song_name_no_features.upper())
 
             # // Check if any of the calculated similarities are a new highest score, along the way,
             # filter out any unwanted versions
@@ -217,5 +219,23 @@ def remove_features(song_title: str) -> str:
     return song_title.lower()
 
 
-def download_playlist_thumbnail():
-    ...
+def download_playlist_thumbnail(playlist) -> None:
+    """Downloads the images of the user's playlists to aid the playlist choice"""
+    playlist_name = playlist['name']
+
+    # // Download thumbnail image
+    try:
+        thumbnail_url = playlist["images"][0]["url"]
+        r = requests.get(thumbnail_url, stream=True, )
+
+        with open(f"./static/select_pl_screens/thumbnails/sp/{playlist_name.replace(' ', '_')}.png", 'wb') as f:
+            f.write(r.content)
+
+    # // Set not available image
+    except KeyError:
+        with open(f"./static/select_pl_screens/thumbnails/sp/{playlist_name.replace(' ', '_')}.png", 'wb') as f:
+            r = requests.get(
+                "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.istockphoto.com%2Fphotos%2Fimage-not-found&psig=AOvVaw3owZbGT0qxCkiZwkuNZnOk&ust=1744038498346000&source=images&cd=vfe&opi=89978449&ved=0CBEQjRxqFwoTCNDxju3Xw4wDFQAAAAAdAAAAABAE",
+                stream=True, verify=False)
+            f.write(r.content)
+    return

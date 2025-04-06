@@ -1,4 +1,3 @@
-import time
 from functools import partial
 
 from kivy.clock import Clock
@@ -8,20 +7,20 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.progressbar import ProgressBar
 
 from flask_app import spotify_client
+from flask_app import youtube_client
 
 # // Images used
 main_background = './static/main_screen/MainScreen_background.png'
 
 
 class ProcessingScreen(Screen):
-    def __init__(self, youtube_client, playlist_name, playlist_id_origin, destination, **kw):
+    def __init__(self, playlist_name, playlist_id_origin, destination, **kw):
         super().__init__(**kw)
 
-        self.yt_client = youtube_client
         self.destination = destination
         self.playlist_name = playlist_name
         self.playlist_id_origin = playlist_id_origin
-        self.playlist_id = ''
+        self.playlist_id_new = ''
         self.current_song = 0
         self.song_count = 0
         self.songs = []
@@ -40,19 +39,35 @@ class ProcessingScreen(Screen):
         """Main function in control of creating and filling a new playlist"""
 
         if self.destination == 'spotify':
-            self.songs = self.yt_client.get_playlist_items(self.playlist_id_origin)
+            self.songs = youtube_client.get_playlist_items(self.playlist_id_origin)
             self.song_count = len(self.songs)
             self.pb.max = self.song_count * 2
             self.pb.value = self.song_count
 
             # // Use spotipy to create a new playlist
-            self.playlist_id = spotify_client.create_spotify_playlist(self.playlist_name)
+            self.playlist_id_new = spotify_client.create_spotify_playlist(self.playlist_name)
             Clock.schedule_once(partial(self.update_spotify_playlist, 0), 0)
 
-    def update_spotify_playlist(self, iteration: int, dt: int | float) -> None:
-        """Add a new song to the spotify playlist that was created earlier"""
+        else:
+            self.songs = spotify_client.get_playlist_items(self.playlist_id_origin)
+            self.song_count = len(self.songs)
+            self.pb.max = self.song_count * 2
+            self.pb.value = self.song_count
 
-        spotify_client.add_song_to_playlist(self.playlist_id, self.songs[iteration])
+            # // Use youtube api to create a new playlist
+            self.playlist_id_new = youtube_client.create_yt_playlist(self.playlist_name)
+            Clock.schedule_once(partial(self.update_youtube_playlist, 0), 0)
+
+    def update_spotify_playlist(self, iteration: int, dt: int | float) -> None:
+        """Add a new song to the spotify playlist that was created earlier, also update progress bar"""
+
+        spotify_client.add_song_to_playlist(self.playlist_id_new, self.songs[iteration])
+        Clock.schedule_once(partial(self.update_progress_bar, iteration + 1), 0)
+
+    def update_youtube_playlist(self, iteration: int, dt: int | float) -> None:
+        """Add a new song to the youtube playlist that was created earlier, also update progress bar"""
+
+        youtube_client.add_song_to_playlist(self.playlist_id_new, self.songs[iteration])
         Clock.schedule_once(partial(self.update_progress_bar, iteration + 1), 0)
 
     def update_progress_bar(self, iteration: int, dt: int | float) -> None:
@@ -60,7 +75,10 @@ class ProcessingScreen(Screen):
 
         self.pb.value += 1
         if iteration != self.song_count:
-            Clock.schedule_once(partial(self.update_spotify_playlist, iteration), 0)
+            if self.destination == 'spotify':
+                Clock.schedule_once(partial(self.update_spotify_playlist, iteration), 0)
+            else:
+                Clock.schedule_once(partial(self.update_youtube_playlist, iteration), 0)
 
 
             

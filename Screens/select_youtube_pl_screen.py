@@ -6,8 +6,8 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 
+from flask_app import youtube_client
 from User_class import user
-from Youtube_class import Youtube
 from .processing_screen import ProcessingScreen
 
 # // Images used
@@ -20,8 +20,6 @@ submit_button_image = './static/select_pl_screens/button_submit.png'
 class SelectYtPlScreen(Screen):
     def __init__(self, **kw):
         super(SelectYtPlScreen, self).__init__(**kw)
-        self.yt_client = Youtube()
-
         self.chosen_playlist = None
         self.name_input = None
 
@@ -39,9 +37,9 @@ class SelectYtPlScreen(Screen):
         self.add_widget(chose_name_text_input)
 
         # // Create flow for Google oauth
-        if not self.yt_client.flow:
-            self.yt_client.create_flow()
-        self.playlists = self.yt_client.get_user_playlists()
+        if not youtube_client.flow:
+            youtube_client.create_flow()
+        self.playlists = youtube_client.get_user_playlists()
 
         # // Scrollview to select a playlist
         self.add_widget(Label(text="Youtube playlist:", font_size=32, color=(1, 1, 1, 1),
@@ -57,7 +55,7 @@ class SelectYtPlScreen(Screen):
         # // Gridlayout containing all the playlist buttons
         playlists_layout = GridLayout(rows=number_of_rows, cols=3, spacing=20, size_hint_y=None, size_hint_x=1)
         for playlist_name, _ in self.playlists.items():
-            pl_button = Button(text=playlist_name, italic=True, color=(0, 0, 0, 1), size_hint_x=.33, size_hint_y=None, background_normal=f"./static/select_pl_screens/thumbnails/{playlist_name.replace(' ', '_')}.png")
+            pl_button = Button(text=playlist_name, italic=True, color=(0, 0, 0, 1), size_hint_x=.33, size_hint_y=None, background_normal=f"./static/select_pl_screens/thumbnails/yt/{playlist_name.replace(' ', '_')}.png")
             pl_button.bind(on_press=self.change_chosen_playlist)
             playlists_layout.add_widget(pl_button)
 
@@ -83,8 +81,7 @@ class SelectYtPlScreen(Screen):
         if self.name_input and self.chosen_playlist:
 
             # // Switch to processing screen
-            processing_screen = ProcessingScreen(youtube_client=self.yt_client,
-                                                 playlist_name=self.name_input,
+            processing_screen = ProcessingScreen(playlist_name=self.name_input,
                                                  playlist_id_origin=self.playlists[self.chosen_playlist],
                                                  destination=user.destination, name="processing")
             self.manager.add_widget(processing_screen)

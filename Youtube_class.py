@@ -26,11 +26,12 @@ class Youtube:
     """Class that contains all functions using the Youtube API"""
 
     def __init__(self):
-        self.oauth = None
-        self.flow = None
-        self.credentials = None
-        self.youtube_build = None
-        self.google_build = None
+        self.create_flow()
+        # self.oauth = None
+        # self.flow = None
+        # self.credentials = None
+        # self.youtube_build = None
+        # self.google_build = None
 
     #
     # def create_yt_oauth(self) -> None:
@@ -125,26 +126,27 @@ class Youtube:
 
         return playlists
 
-    def create_yt_playlist(self, playlist_name, song_names):
-        """Function that uses yt api to create a new playlist and inserts desired songs into it"""
+    def create_yt_playlist(self, playlist_name):
+        """Function that uses yt api to create a new playlist and returns its id"""
 
         # Create a new playlist and get its id
         new_pl = self.youtube_build.playlists().insert(part="snippet,contentDetails",
                                                        body={"snippet": {"title": playlist_name}}).execute()
-        pl_id = new_pl['id']
+        return new_pl['id']
 
-        for song in song_names:
-            song_id = get_song_id(song)
+    def add_song_to_playlist(self, playlist_id, song_name):
+        """Insert a song into the playlist created above"""
 
-            self.youtube_build.playlistItems().insert(part='snippet,contentDetails', body={
-                "snippet": {
-                    "playlistId": pl_id,
-                    "resourceId": {
-                        "kind": "youtube#video",
-                        "videoId": song_id
-                    }
+        song_id = get_song_id(song_name)
+        self.youtube_build.playlistItems().insert(part='snippet,contentDetails', body={
+            "snippet": {
+                "playlistId": playlist_id,
+                "resourceId": {
+                    "kind": "youtube#video",
+                    "videoId": song_id
                 }
-            }).execute()
+            }
+        }).execute()
 
 
 def get_song_id(song_name: str) -> str:
@@ -191,7 +193,7 @@ def download_playlist_thumbnail(playlist) -> None:
             thumbnail_url = playlist["snippet"]["thumbnails"][res]['url']
             r = requests.get(thumbnail_url, stream=True, verify=False)
 
-            with open(f"./static/select_pl_screens/thumbnails/{playlist_name.replace(' ', '_')}.png", 'wb') as f:
+            with open(f"./static/select_pl_screens/thumbnails/yt/{playlist_name.replace(' ', '_')}.png", 'wb') as f:
                 f.write(r.content)
                 return
 
@@ -200,4 +202,7 @@ def download_playlist_thumbnail(playlist) -> None:
 
     # // set not available image
     else:
-        ...
+        with open(f"./static/select_pl_screens/thumbnails/yt/{playlist_name.replace(' ', '_')}.png", 'wb') as f:
+            r = requests.get("https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.istockphoto.com%2Fphotos%2Fimage-not-found&psig=AOvVaw3owZbGT0qxCkiZwkuNZnOk&ust=1744038498346000&source=images&cd=vfe&opi=89978449&ved=0CBEQjRxqFwoTCNDxju3Xw4wDFQAAAAAdAAAAABAE", stream=True, verify=False)
+            f.write(r.content)
+            return

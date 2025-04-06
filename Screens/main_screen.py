@@ -2,6 +2,7 @@ import webbrowser
 
 from kivy.uix.button import Button
 from kivy.uix.image import Image
+from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 
 from User_class import user
@@ -11,7 +12,7 @@ from .select_sp_pl_screen import SelectSpotifyPlScreen
 # // Images used
 main_background = './static/main_screen/MainScreen_background.png'
 new_logo = './static/TuneTransferLogo.png'
-text_logo = './static/main_screen/TuneTransfer_new_text.png'
+tunetransfer_text = '.static/main_screen/TuneTransfer-white_text.png'
 to_sp_button_image = './static/main_screen/button_transfer-to-spotify.png'
 to_yt_button_image = './static/main_screen/button_transfer-to-youtube.png'
 
@@ -22,6 +23,8 @@ class MainScreen(Screen):
 
         self.add_widget(Button(disabled=True, disabled_color=(49 / 255, 52 / 255, 56 / 255, 1), size=(1, 1)))
         self.add_widget(Image(source=new_logo, pos_hint={'x': .4, 'y': .7}, size_hint=(.2, .2)))
+        self.add_widget(Label(text="TuneTransfer", color=(1, 1, 1, 1), font_size=64,
+                              pos_hint={'x': .4075, 'y': .56}, size_hint=(.2, .2)))
 
         to_sp_button = Button(size_hint=(.5, .075), pos_hint={'x': .25, 'y': .5},
                               background_normal=to_sp_button_image, background_down=to_sp_button_image)
