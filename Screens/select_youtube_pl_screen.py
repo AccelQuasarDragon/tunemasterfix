@@ -7,7 +7,6 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 
 from flask_app import youtube_client
-from User_class import user
 from .processing_screen import ProcessingScreen
 
 # // Images used
@@ -36,9 +35,9 @@ class SelectYtPlScreen(Screen):
         chose_name_text_input.bind(text=lambda instance, x: setattr(self, 'name_input', x))
         self.add_widget(chose_name_text_input)
 
-        # // Create flow for Google oauth
-        if not youtube_client.flow:
-            youtube_client.create_flow()
+        # # // Create flow for Google oauth
+        # if not youtube_client.flow:
+        #     youtube_client.create_flow()
         self.playlists = youtube_client.get_user_playlists()
 
         # // Scrollview to select a playlist
@@ -83,7 +82,7 @@ class SelectYtPlScreen(Screen):
             # // Switch to processing screen
             processing_screen = ProcessingScreen(playlist_name=self.name_input,
                                                  playlist_id_origin=self.playlists[self.chosen_playlist],
-                                                 destination=user.destination, name="processing")
+                                                 destination='spotify', name="processing")
             self.manager.add_widget(processing_screen)
             self.manager.current = "processing"
             Clock.schedule_once(processing_screen.create_playlist, .2)

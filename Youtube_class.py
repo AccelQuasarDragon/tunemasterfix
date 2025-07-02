@@ -1,10 +1,7 @@
-import googleapiclient.discovery
 import re
-import google_auth_oauthlib
 import requests
 
 from data import api_keys
-from google_auth_oauthlib.flow import InstalledAppFlow
 from youtube_search import YoutubeSearch
 
 # Google/Youtube setup
@@ -26,40 +23,8 @@ class Youtube:
     """Class that contains all functions using the Youtube API"""
 
     def __init__(self):
-        self.create_flow()
-        # self.oauth = None
-        # self.flow = None
-        # self.credentials = None
-        # self.youtube_build = None
-        # self.google_build = None
-
-    #
-    # def create_yt_oauth(self) -> None:
-    #     """Function that sets up google oauth needed to access a youtube account"""
-    #
-    #     self.oauth = OAuth(flask.current_app)
-    #     self.google_build = self.oauth.register(
-    #         name='Google',
-    #         client_id=GOOGLE_CLIENT_ID,
-    #         client_secret=GOOGLE_CLIENT_SECRET,
-    #         access_token_url='https://accounts.google.com/o/oauth2/token',
-    #         access_token_params=None,
-    #         authorize_url='https://accounts.google.com/o/oauth2/auth',
-    #         authorize_params={'access_type': 'offline'},
-    #         api_base_url='https://www.googleapis.com/youtube/v3',
-    #         client_kwargs={
-    #             'prompt': 'consent',
-    #             'scope': 'https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.readonly'
-    #                      '  https://www.googleapis.com/auth/youtubepartner-channel-audit'})
-
-    def create_flow(self) -> None:
-        """Function that creates the flow that is used for running the Google server"""
-
-        self.flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-            'client_secrets.json', GOOGLE_SCOPES)
-        self.credentials = self.flow.run_local_server()
-        self.youtube_build = googleapiclient.discovery.build('youtube', 'v3',
-                                                             credentials=self.credentials)
+        self.logged_in = False
+        self.youtube_build = None
 
     def get_playlist_items(self, playlist_id) -> list:
         """Function that uses yt api to get song names from a playlist"""

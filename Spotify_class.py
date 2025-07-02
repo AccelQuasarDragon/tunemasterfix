@@ -26,20 +26,9 @@ class SpotifyFunctions:
 
     def __init__(self):
         self.cache_handler = FlaskSessionCacheHandler(session)
-        self.spotify_oauth: spotipy.SpotifyOAuth = self.oauth_setup()
+        self.spotify_oauth: spotipy.SpotifyOAuth = oauth_setup()
         self.sp: spotipy.Spotify = Spotify(auth_manager=self.spotify_oauth)
         self.user_id = None
-
-    def oauth_setup(self):
-
-        # handles spotify oauth
-        return SpotifyOAuth(
-            client_id=SPOTIFY_CLIENT_ID,
-            client_secret=SPOTIFY_CLIENT_SECRET,
-            redirect_uri='http://127.0.0.1:5000/redirect',
-            scope=scopes,
-            show_dialog=True
-        )
 
     def check_token(self) -> bool:
         """Check if user is logged into spotify"""
@@ -115,34 +104,40 @@ class SpotifyFunctions:
 
         spotify_result_with_features = self.sp.search(q=song_name.lower(), limit=5, type=['track'])
         spotify_result_no_features = self.sp.search(q=song_name_no_features, limit=5, type=["track"])
+        print(spotify_result_with_features)
 
         # // Gather results from both searches
         for i in range(5):
-            # // Group 1: Featuring the song name with featured artists, both normal and reversed,
-            # for youtube videos that have a reversed title format
-            # step 1: gather artist and title data from the spotify search
-            song_artist_with_features = spotify_result_with_features['tracks']['items'][i]['artists'][0]['name']
-            song_title_with_features = spotify_result_with_features['tracks']['items'][i]['name']
-            song_uri_with_features = spotify_result_with_features['tracks']['items'][i]['uri']
+            try:
+                # // Group 1: Featuring the song name with featured artists, both normal and reversed,
+                # for youtube videos that have a reversed title format
+                # step 1: gather artist and title data from the spotify search
+                song_artist_with_features = spotify_result_with_features['tracks']['items'][i]['artists'][0]['name']
+                song_title_with_features = spotify_result_with_features['tracks']['items'][i]['name']
+                song_uri_with_features = spotify_result_with_features['tracks']['items'][i]['uri']
 
-            # step 2: assamble the full name of the song, now including the main artist, send this to the results
-            title_with_features_normal = f'{song_artist_with_features} - {song_title_with_features}'
-            title_with_features_reversed = f'{song_title_with_features} - {song_artist_with_features}'
+                # step 2: assamble the full name of the song, now including the main artist, send this to the results
+                title_with_features_normal = f'{song_artist_with_features} - {song_title_with_features}'
+                title_with_features_reversed = f'{song_title_with_features} - {song_artist_with_features}'
 
-            results.append((title_with_features_normal, title_with_features_reversed, song_uri_with_features))
+                results.append((title_with_features_normal, title_with_features_reversed, song_uri_with_features))
 
-            # // Group 2: Featuring the song name without featured artists, both normal and reversed,
-            # for youtube videos that have a reversed title format
-            # step 1: gather artist and title data from the spotify search
-            song_artist_no_features = spotify_result_no_features['tracks']['items'][i]['artists'][0]['name']
-            song_title_no_features = spotify_result_no_features['tracks']['items'][i]['name']
-            song_uri_no_features = spotify_result_no_features['tracks']['items'][i]['uri']
+                # // Group 2: Featuring the song name without featured artists, both normal and reversed,
+                # for youtube videos that have a reversed title format
+                # step 1: gather artist and title data from the spotify search
+                song_artist_no_features = spotify_result_no_features['tracks']['items'][i]['artists'][0]['name']
+                song_title_no_features = spotify_result_no_features['tracks']['items'][i]['name']
+                song_uri_no_features = spotify_result_no_features['tracks']['items'][i]['uri']
 
-            # step 2: assamble the full name of the song, now including the main artist, send this to the results
-            title_no_features_normal = f'{song_artist_no_features} - {song_title_no_features}'
-            title_no_features_reversed = f'{song_title_no_features} - {song_artist_no_features}'
+                # step 2: assamble the full name of the song, now including the main artist, send this to the results
+                title_no_features_normal = f'{song_artist_no_features} - {song_title_no_features}'
+                title_no_features_reversed = f'{song_title_no_features} - {song_artist_no_features}'
 
-            results.append((title_no_features_normal, title_no_features_reversed, song_uri_no_features))
+                results.append((title_no_features_normal, title_no_features_reversed, song_uri_no_features))
+
+            # // Catch error if less than five options are available
+            except IndexError:
+                pass
 
         # // Go through every result and compare with both the feature and no feature song title
         for result in results:
@@ -176,6 +171,18 @@ class SpotifyFunctions:
 
         # // Finally, add the final choice to the playlist
         self.sp.playlist_add_items(playlist_id=playlist_id, items=[current_uri])
+
+
+def oauth_setup():
+
+    # handles spotify oauth setup
+    return SpotifyOAuth(
+        client_id=SPOTIFY_CLIENT_ID,
+        client_secret=SPOTIFY_CLIENT_SECRET,
+        redirect_uri='http://127.0.0.1:5000/redirect',
+        scope=scopes,
+        show_dialog=True
+    )
 
 
 def remove_features(song_title: str) -> str:
@@ -235,7 +242,9 @@ def download_playlist_thumbnail(playlist) -> None:
     except KeyError:
         with open(f"./static/select_pl_screens/thumbnails/sp/{playlist_name.replace(' ', '_')}.png", 'wb') as f:
             r = requests.get(
-                "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.istockphoto.com%2Fphotos%2Fimage-not-found&psig=AOvVaw3owZbGT0qxCkiZwkuNZnOk&ust=1744038498346000&source=images&cd=vfe&opi=89978449&ved=0CBEQjRxqFwoTCNDxju3Xw4wDFQAAAAAdAAAAABAE",
+                "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.istockphoto.com%2Fphotos%2Fimage-not-found"
+                "&psig=AOvVaw3owZbGT0qxCkiZwkuNZnOk&ust=1744038498346000&source=images&cd=vfe&opi=89978449&ved"
+                "=0CBEQjRxqFwoTCNDxju3Xw4wDFQAAAAAdAAAAABAE",
                 stream=True, verify=False)
             f.write(r.content)
     return

@@ -5,7 +5,7 @@ from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 
-from User_class import user
+from flask_app import youtube_client
 from .select_youtube_pl_screen import SelectYtPlScreen
 from .select_sp_pl_screen import SelectSpotifyPlScreen
 
@@ -38,20 +38,18 @@ class MainScreen(Screen):
         self.add_widget(to_sp_button)
 
     def go_to_yt(self, instance):
-        user.destination = 'youtube'
         webbrowser.open("http://127.0.0.1:5000/toyoutube")
 
-        while not user.logged_in_spotify:
+        while not youtube_client.logged_in:
             pass
 
         self.manager.add_widget(SelectSpotifyPlScreen(name='select_sp_pl'))
         self.manager.current = 'select_sp_pl'
 
     def go_to_sp(self, instance):
-        user.destination = 'spotify'
         webbrowser.open("http://127.0.0.1:5000/tospotify")
 
-        while not user.logged_in_spotify:
+        while not youtube_client.logged_in:
             pass
 
         self.manager.add_widget(SelectYtPlScreen(name='select_yt_pl'))

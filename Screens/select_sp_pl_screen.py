@@ -7,7 +7,6 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 
 from flask_app import spotify_client
-from User_class import user
 from .processing_screen import ProcessingScreen
 
 # // Images used
@@ -80,7 +79,7 @@ class SelectSpotifyPlScreen(Screen):
             # // Switch to processing screen
             processing_screen = ProcessingScreen(playlist_name=self.name_input,
                                                  playlist_id_origin=self.playlists[self.chosen_playlist],
-                                                 destination=user.destination, name="processing")
+                                                 destination='youtube', name="processing")
             self.manager.add_widget(processing_screen)
             self.manager.current = "processing"
             Clock.schedule_once(processing_screen.create_playlist, .2)
