@@ -1,12 +1,12 @@
 import re
 import requests
 
-from data import api_keys
+# from data import api_keys
 from youtube_search import YoutubeSearch
 
 # Google/Youtube setup
-GOOGLE_CLIENT_ID = api_keys['GOOGLE_CLIENT_ID']
-GOOGLE_CLIENT_SECRET = api_keys['GOOGLE_CLIENT_SECRET']
+# GOOGLE_CLIENT_ID = api_keys['GOOGLE_CLIENT_ID']
+# GOOGLE_CLIENT_SECRET = api_keys['GOOGLE_CLIENT_SECRET']
 CLIENT_FILE = 'client_secrets.json'
 REDIRECT_URI = 'http://127.0.0.1:5000/ytplaylistselect'
 GOOGLE_SCOPES = ['https://www.googleapis.com/auth/youtube',

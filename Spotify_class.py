@@ -4,17 +4,17 @@ import jaro
 import requests
 import spotipy
 
-from data import api_keys
+# from data import api_keys
 from flask import session
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
 from spotipy.cache_handler import FlaskSessionCacheHandler
 
 # Spotify variables
-SPOTIFY_CLIENT_ID = api_keys["SPOTIFY_CLIENT_ID"]
-SPOTIFY_CLIENT_SECRET = api_keys["SPOTIFY_CLIENT_SECRET"]
-scopes = ['playlist-read-collaborative', 'user-read-private', 'playlist-modify-private',
-          'playlist-read-private']
+# SPOTIFY_CLIENT_ID = api_keys["SPOTIFY_CLIENT_ID"]
+# SPOTIFY_CLIENT_SECRET = api_keys["SPOTIFY_CLIENT_SECRET"]
+# scopes = ['playlist-read-collaborative', 'user-read-private', 'playlist-modify-private',
+#           'playlist-read-private']
 
 # Variables
 features_to_remove = ["[feat", "(feat", "feat", "[ft", "(ft", "ft", "[with", "(with", "with"]
@@ -26,8 +26,8 @@ class SpotifyFunctions:
 
     def __init__(self):
         self.cache_handler = FlaskSessionCacheHandler(session)
-        self.spotify_oauth: spotipy.SpotifyOAuth = oauth_setup()
-        self.sp: spotipy.Spotify = Spotify(auth_manager=self.spotify_oauth)
+        # self.spotify_oauth: spotipy.SpotifyOAuth = oauth_setup()
+        # self.sp: spotipy.Spotify = Spotify(auth_manager=self.spotify_oauth)
         self.user_id = None
 
     def check_token(self) -> bool:
@@ -173,16 +173,16 @@ class SpotifyFunctions:
         self.sp.playlist_add_items(playlist_id=playlist_id, items=[current_uri])
 
 
-def oauth_setup():
+# def oauth_setup():
 
-    # handles spotify oauth setup
-    return SpotifyOAuth(
-        client_id=SPOTIFY_CLIENT_ID,
-        client_secret=SPOTIFY_CLIENT_SECRET,
-        redirect_uri='http://127.0.0.1:5000/redirect',
-        scope=scopes,
-        show_dialog=True
-    )
+#     # handles spotify oauth setup
+#     return SpotifyOAuth(
+#         client_id=SPOTIFY_CLIENT_ID,
+#         client_secret=SPOTIFY_CLIENT_SECRET,
+#         redirect_uri='http://127.0.0.1:5000/redirect',
+#         scope=scopes,
+#         show_dialog=True
+#     )
 
 
 def remove_features(song_title: str) -> str:
